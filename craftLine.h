@@ -3,4 +3,4 @@
 
 char* craftLine(char* prompt);
 
-#endif CRAFTLINE_H
+#endif

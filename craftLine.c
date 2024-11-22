@@ -1,5 +1,7 @@
 #include "craftLine.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/ioctl.h>
@@ -30,7 +32,7 @@ char* craftLine(char* prompt) {
 
         char cursorEscCode[10];
         snprintf(cursorEscCode, sizeof(cursorEscCode), "\x1b[%iG", promptLength + 1 + lineCursorPosition - lineDisplayOffset);
-        write(STDOUT_FILENO, lineCursorPosition, strlen(lineCursorPosition));
+        write(STDOUT_FILENO, cursorEscCode, strlen(cursorEscCode));
 
         char c;
         read(STDIN_FILENO, &c, 1);
@@ -74,11 +76,11 @@ char* craftLine(char* prompt) {
                 lineDisplayOffset = 0;
                 lineLength = 0;
                 break;
-            case 27: // escape character
+            case 27: { // escape character
                 char escapeSequence[3];
                 // read-in the next two characters
-                if (read(STDOUT_FILENO, escapeSequence, 1) == -1) {break;}
-                if (read(STDOUT_FILENO, escapeSequence+1, 1) == -1) {break;}
+                if (read(STDIN_FILENO, escapeSequence, 1) == -1) {break;}
+                if (read(STDIN_FILENO, escapeSequence+1, 1) == -1) {break;}
                 if (escapeSequence[0] == '[') {
                     switch(escapeSequence[1]) {
                         case 'C': // right arrow key
@@ -92,6 +94,7 @@ char* craftLine(char* prompt) {
                     }
                 }
                 break;
+            }
             default: // store character in buff
                 memmove(lineBuffer+lineCursorPosition+1, lineBuffer+lineCursorPosition, lineLength - lineCursorPosition);
                 lineBuffer[lineCursorPosition] = c;
