@@ -10,7 +10,7 @@
 struct termios initial_terminal_settings;
 static char lineHistoryPath[100] = "./craftlinehistory.txt";
 static int lineHistorySize = 10;
-static char* lineHistory[100] = {NULL};
+static char* lineHistoryBuffer[100] = {NULL};
 
 int enableRawTerminal() {
     
@@ -47,7 +47,7 @@ void restoreLineHistory() {
             getline(&line, &lineLength, historyFile);
             if (strcmp(line, "\0") != 0) {
                 line[strlen(line)-1] = '\0';
-                lineHistory[i] = strdup(line);
+                lineHistoryBuffer[i] = strdup(line);
             }
         }
         fclose(historyFile);
@@ -59,12 +59,18 @@ void saveLineHistory() {
     historyFile = fopen(lineHistoryPath, "a+");
     ftruncate(fileno(historyFile), 0);
     for (int i = 1; i < lineHistorySize; i++) {
-        if (lineHistory[i] != NULL) {
-            fprintf(historyFile, "%s\n", lineHistory[i]);
+        if (lineHistoryBuffer[i] != NULL) {
+            fprintf(historyFile, "%s\n", lineHistoryBuffer[i]);
             fflush(historyFile);
         }
     }
     fclose(historyFile);
+}
+
+void addLineHistory(char* lineBuffer) {
+    free(lineHistoryBuffer[lineHistorySize - 1]);
+    memmove(lineHistoryBuffer + 2, lineHistoryBuffer + 1, lineHistorySize*sizeof(char*)*2 - sizeof(char*)*2);
+    lineHistoryBuffer[1] = strdup(lineBuffer);
 }
 
 char* craftLine(char* prompt) {
@@ -160,29 +166,29 @@ char* craftLine(char* prompt) {
                             break;
                         case 'A': // up arrow key
                             // get previous record in history
-                            if ((lineHistory[lineHistoryPosition + 1] != NULL) && lineHistoryPosition < (lineHistorySize - 1)) {
-                                if (lineHistoryPosition == 0) {lineHistory[0] = strdup(lineBuffer);}
+                            if ((lineHistoryBuffer[lineHistoryPosition + 1] != NULL) && lineHistoryPosition < (lineHistorySize - 1)) {
+                                if (lineHistoryPosition == 0) {lineHistoryBuffer[0] = strdup(lineBuffer);}
                                 lineHistoryPosition++;
-                                lineLength = strlen(lineHistory[lineHistoryPosition]);
-                                lineBufferSize = strlen(lineHistory[lineHistoryPosition]) + 1;
+                                lineLength = strlen(lineHistoryBuffer[lineHistoryPosition]);
+                                lineBufferSize = strlen(lineHistoryBuffer[lineHistoryPosition]) + 1;
                                 lineCursorPosition = lineLength;
                                 lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
                                 free(lineBuffer);
                                 lineBuffer = calloc(lineBufferSize, sizeof(char));
-                                strcpy(lineBuffer, lineHistory[lineHistoryPosition]);
+                                strcpy(lineBuffer, lineHistoryBuffer[lineHistoryPosition]);
                             }
                             break;
                         case 'B': // down arrow key
                             // get next record in history
                             if (lineHistoryPosition > 0) {
                                 lineHistoryPosition--;
-                                lineLength = strlen(lineHistory[lineHistoryPosition]);
-                                lineBufferSize = strlen(lineHistory[lineHistoryPosition]) + 1;
+                                lineLength = strlen(lineHistoryBuffer[lineHistoryPosition]);
+                                lineBufferSize = strlen(lineHistoryBuffer[lineHistoryPosition]) + 1;
                                 lineCursorPosition = lineLength;
                                 lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
                                 free(lineBuffer);
                                 lineBuffer = calloc(lineBufferSize, sizeof(char));
-                                strcpy(lineBuffer, lineHistory[lineHistoryPosition]);
+                                strcpy(lineBuffer, lineHistoryBuffer[lineHistoryPosition]);
                             }    
                             break;
                     }
@@ -207,6 +213,11 @@ char* craftLine(char* prompt) {
     } while (true);
 
     returnLine:
+        free(lineHistoryBuffer[0]);
+        lineHistoryBuffer[0] = NULL;
+        if (lineBuffer[0] != '\0') {
+            addLineHistory(lineBuffer);
+        }
         disableRawTerminal();
         saveLineHistory();
         write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
