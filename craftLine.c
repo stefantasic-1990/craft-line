@@ -8,9 +8,9 @@
 #include <sys/ioctl.h>
 
 struct termios initial_terminal_settings;
-static char lineHistoryPath[] = "./craftlinehistory.txt";
-static int lineHistoryBufferSize = 11;
-static char** lineHistoryBuffer = NULL;
+static char historyPath[] = "./craftlinehistory.txt";
+static int historyBufferSize = 11;
+static char** historyBuffer = NULL;
 
 int enableRawTerminal() {
     
@@ -37,40 +37,40 @@ void disableRawTerminal() {
     tcsetattr(STDIN_FILENO,TCSAFLUSH,&initial_terminal_settings);
 }
 
-void restoreLineHistory() {
+void restoreHistory() {
     FILE* historyFile;
-    historyFile = fopen(lineHistoryPath, "r+");
+    historyFile = fopen(historyPath, "r+");
     if (historyFile != NULL) {
-        for (int i = 1; i < lineHistoryBufferSize; i++) {
+        for (int i = 1; i < historyBufferSize; i++) {
             char* line = NULL;
             size_t lineLength = 0;
             getline(&line, &lineLength, historyFile);
             if (strcmp(line, "\0") != 0) {
                 line[strlen(line)-1] = '\0';
-                lineHistoryBuffer[i] = strdup(line);
+                historyBuffer[i] = strdup(line);
             }
         }
         fclose(historyFile);
     }
 }
 
-void saveLineHistory() {
+void saveHistory() {
     FILE* historyFile;
-    historyFile = fopen(lineHistoryPath, "a+");
+    historyFile = fopen(historyPath, "a+");
     ftruncate(fileno(historyFile), 0);
-    for (int i = 1; i < lineHistoryBufferSize; i++) {
-        if (lineHistoryBuffer[i] != NULL) {
-            fprintf(historyFile, "%s\n", lineHistoryBuffer[i]);
+    for (int i = 1; i < historyBufferSize; i++) {
+        if (historyBuffer[i] != NULL) {
+            fprintf(historyFile, "%s\n", historyBuffer[i]);
             fflush(historyFile);
         }
     }
     fclose(historyFile);
 }
 
-void addLineHistory(char* lineBuffer) {
-    free(lineHistoryBuffer[lineHistoryBufferSize - 1]);
-    memmove(lineHistoryBuffer + 2, lineHistoryBuffer + 1, lineHistoryBufferSize*sizeof(char*)*2 - sizeof(char*)*2);
-    lineHistoryBuffer[1] = strdup(lineBuffer);
+void addToHistory(char* lineBuffer) {
+    free(historyBuffer[historyBufferSize - 1]);
+    memmove(historyBuffer + 2, historyBuffer + 1, historyBufferSize*sizeof(char*)*2 - sizeof(char*)*2);
+    historyBuffer[1] = strdup(lineBuffer);
 }
 
 char* craftLine(char* prompt) {
@@ -92,12 +92,12 @@ char* craftLine(char* prompt) {
     if (ioctl(1, TIOCGWINSZ, &ws) == -1) {terminalWindowWidth = 80;} else {terminalWindowWidth = ws.ws_col - 1;}
     lineDisplayLength = terminalWindowWidth - promptLength;
 
-    if (lineHistoryBuffer == NULL) {
-        lineHistoryBuffer = calloc(lineHistoryBufferSize, sizeof(char*));
+    if (historyBuffer == NULL) {
+        historyBuffer = calloc(historyBufferSize, sizeof(char*));
     }
 
     enableRawTerminal();
-    restoreLineHistory();
+    restoreHistory();
 
     do {
         write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
@@ -170,29 +170,29 @@ char* craftLine(char* prompt) {
                             break;
                         case 'A': // up arrow key
                             // get previous record in history
-                            if ((lineHistoryBuffer[lineHistoryPosition + 1] != NULL) && lineHistoryPosition < (lineHistoryBufferSize - 1)) {
-                                if (lineHistoryPosition == 0) {lineHistoryBuffer[0] = strdup(lineBuffer);}
+                            if ((historyBuffer[lineHistoryPosition + 1] != NULL) && lineHistoryPosition < (historyBufferSize - 1)) {
+                                if (lineHistoryPosition == 0) {historyBuffer[0] = strdup(lineBuffer);}
                                 lineHistoryPosition++;
-                                lineLength = strlen(lineHistoryBuffer[lineHistoryPosition]);
-                                lineBufferSize = strlen(lineHistoryBuffer[lineHistoryPosition]) + 1;
+                                lineLength = strlen(historyBuffer[lineHistoryPosition]);
+                                lineBufferSize = strlen(historyBuffer[lineHistoryPosition]) + 1;
                                 lineCursorPosition = lineLength;
                                 lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
                                 free(lineBuffer);
                                 lineBuffer = calloc(lineBufferSize, sizeof(char));
-                                strcpy(lineBuffer, lineHistoryBuffer[lineHistoryPosition]);
+                                strcpy(lineBuffer, historyBuffer[lineHistoryPosition]);
                             }
                             break;
                         case 'B': // down arrow key
                             // get next record in history
                             if (lineHistoryPosition > 0) {
                                 lineHistoryPosition--;
-                                lineLength = strlen(lineHistoryBuffer[lineHistoryPosition]);
-                                lineBufferSize = strlen(lineHistoryBuffer[lineHistoryPosition]) + 1;
+                                lineLength = strlen(historyBuffer[lineHistoryPosition]);
+                                lineBufferSize = strlen(historyBuffer[lineHistoryPosition]) + 1;
                                 lineCursorPosition = lineLength;
                                 lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
                                 free(lineBuffer);
                                 lineBuffer = calloc(lineBufferSize, sizeof(char));
-                                strcpy(lineBuffer, lineHistoryBuffer[lineHistoryPosition]);
+                                strcpy(lineBuffer, historyBuffer[lineHistoryPosition]);
                             }    
                             break;
                     }
@@ -217,13 +217,13 @@ char* craftLine(char* prompt) {
     } while (true);
 
     returnLine:
-        free(lineHistoryBuffer[0]);
-        lineHistoryBuffer[0] = NULL;
+        free(historyBuffer[0]);
+        historyBuffer[0] = NULL;
         if (lineBuffer[0] != '\0') {
-            addLineHistory(lineBuffer);
+            addToHistory(lineBuffer);
         }
         disableRawTerminal();
-        saveLineHistory();
+        saveHistory();
         write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
         return lineBuffer;
 }
