@@ -37,7 +37,7 @@ void disableRawTerminal() {
     tcsetattr(STDIN_FILENO,TCSAFLUSH,&initial_terminal_settings);
 }
 
-void restoreCommandHistory() {
+void restoreLineHistory() {
     FILE* historyFile;
     historyFile = fopen(lineHistoryPath, "r+");
     if (historyFile != NULL) {
@@ -54,7 +54,7 @@ void restoreCommandHistory() {
     }
 }
 
-void saveCommandHistory() {
+void saveLineHistory() {
     FILE* historyFile;
     historyFile = fopen(lineHistoryPath, "a+");
     ftruncate(fileno(historyFile), 0);
@@ -87,7 +87,7 @@ char* craftLine(char* prompt) {
     int historyCursorPosition;
 
     enableRawTerminal();
-    restoreCommandHistory();
+    restoreLineHistory();
 
     do {
         write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
@@ -180,7 +180,7 @@ char* craftLine(char* prompt) {
 
     returnLine:
         disableRawTerminal();
-        saveCommandHistory();
+        saveLineHistory();
         write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
         return lineBuffer;
 }
