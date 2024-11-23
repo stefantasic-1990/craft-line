@@ -4,7 +4,38 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <termios.h>
 #include <sys/ioctl.h>
+
+static struct termios initial_terminal_settings; // original terminal settings
+
+int enableRawTerminal() {
+    struct termios modified_terminal_settings;
+
+    // save initial terminal settings
+    if (tcgetattr(STDIN_FILENO, &initial_terminal_settings) == -1) {return 1;} 
+
+    // check TTY device
+    if (!isatty(STDIN_FILENO)) {return -1;} 
+
+    // change terminal settings
+    if (tcgetattr(STDIN_FILENO, &modified_terminal_settings) == -1) {return 1;} 
+    modified_terminal_settings.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+    modified_terminal_settings.c_oflag &= ~(OPOST);
+    modified_terminal_settings.c_cflag |= (CS8);
+    modified_terminal_settings.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+    modified_terminal_settings.c_cc[VMIN] = 1; 
+    modified_terminal_settings.c_cc[VTIME] = 0;
+
+    // set new terminal settings
+    if (tcsetattr(STDIN_FILENO,TCSAFLUSH,&modified_terminal_settings) == -1) {return -1;};
+
+    return 0;
+}
+
+void disableRawTerminal() {
+    tcsetattr(STDIN_FILENO,TCSAFLUSH,&initial_terminal_settings);
+}
 
 char* craftLine(char* prompt) {
     int lineLength = 0;
@@ -21,8 +52,11 @@ char* craftLine(char* prompt) {
     struct winsize ws;
     int terminalWindowWidth;
     if (ioctl(1, TIOCGWINSZ, &ws) == -1) {terminalWindowWidth = 80;} else {terminalWindowWidth = ws.ws_col - 1;}
+    lineDisplayLength = terminalWindowWidth - promptLength;
 
     int historyCursorPosition;
+
+    enableRawTerminal();
 
     do {
         write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
@@ -35,7 +69,7 @@ char* craftLine(char* prompt) {
         write(STDOUT_FILENO, cursorEscCode, strlen(cursorEscCode));
 
         char c;
-        read(STDIN_FILENO, &c, 1);
+        read(STDOUT_FILENO, &c, 1);
 
         switch(c) {
             case 13: // enter
@@ -50,6 +84,7 @@ char* craftLine(char* prompt) {
                 }
                 break;
             case 3: // ctrl+c
+                disableRawTerminal();
                 exit(EXIT_SUCCESS);
             case 4: // ctrl+d
                 break;
@@ -96,7 +131,7 @@ char* craftLine(char* prompt) {
                 break;
             }
             default: // store character in buff
-                memmove(lineBuffer+lineCursorPosition+1, lineBuffer+lineCursorPosition, lineLength - lineCursorPosition);
+                memmove(lineBuffer+lineCursorPosition+1, lineBuffer+lineCursorPosition, lineLength-lineCursorPosition);
                 lineBuffer[lineCursorPosition] = c;
                 lineCursorPosition++;
                 lineLength++;
@@ -113,6 +148,7 @@ char* craftLine(char* prompt) {
     } while (true);
 
     returnLine:
-        write(STDOUT_FILENO, "\r\n", sizeof("\r\n"));
+        disableRawTerminal();
+        write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
         return lineBuffer;
 }
