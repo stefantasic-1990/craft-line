@@ -8,6 +8,9 @@
 #include <sys/ioctl.h>
 
 struct termios initial_terminal_settings;
+static char lineHistoryPath[100] = "./craftlinehistory.txt";
+static int lineHistorySize = 10;
+static char* lineHistory[100] = {NULL};
 
 int enableRawTerminal() {
     
@@ -34,6 +37,36 @@ void disableRawTerminal() {
     tcsetattr(STDIN_FILENO,TCSAFLUSH,&initial_terminal_settings);
 }
 
+void restoreCommandHistory() {
+    FILE* historyFile;
+    historyFile = fopen(lineHistoryPath, "r+");
+    if (historyFile != NULL) {
+        for (int i = 1; i < lineHistorySize; i++) {
+            char* line = NULL;
+            size_t lineLength = 0;
+            getline(&line, &lineLength, historyFile);
+            if (strcmp(line, "\0") != 0) {
+                line[strlen(line)-1] = '\0';
+                lineHistory[i] = strdup(line);
+            }
+        }
+        fclose(historyFile);
+    }
+}
+
+void saveCommandHistory() {
+    FILE* historyFile;
+    historyFile = fopen(lineHistoryPath, "a+");
+    ftruncate(fileno(historyFile), 0);
+    for (int i = 1; i < lineHistorySize; i++) {
+        if (lineHistory[i] != NULL) {
+            fprintf(historyFile, "%s\n", lineHistory[i]);
+            fflush(historyFile);
+        }
+    }
+    fclose(historyFile);
+}
+
 char* craftLine(char* prompt) {
     int lineLength = 0;
     int lineCursorPosition = 0;
@@ -54,6 +87,7 @@ char* craftLine(char* prompt) {
     int historyCursorPosition;
 
     enableRawTerminal();
+    restoreCommandHistory();
 
     do {
         write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
@@ -146,6 +180,7 @@ char* craftLine(char* prompt) {
 
     returnLine:
         disableRawTerminal();
+        saveCommandHistory();
         write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
         return lineBuffer;
 }
