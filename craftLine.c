@@ -73,6 +73,7 @@ char* craftLine(char* prompt) {
     int lineDisplayOffset = 0;
     int lineDisplayLength = 0;
     int promptLength = strlen(prompt);
+    int lineHistoryPosition = 0;
 
     char * lineBuffer;
     int lineBufferSize = 100;
@@ -156,6 +157,33 @@ char* craftLine(char* prompt) {
                         case 'D': // left arrow key
                             if (lineCursorPosition > 0) {lineCursorPosition--;}
                             if ((lineCursorPosition - lineDisplayOffset) < 0) {lineDisplayOffset--;}
+                            break;
+                        case 'A': // up arrow key
+                            // get previous record in history
+                            if ((lineHistory[lineHistoryPosition + 1] != NULL) && lineHistoryPosition < (lineHistorySize - 1)) {
+                                if (lineHistoryPosition == 0) {lineHistory[0] = strdup(lineBuffer);}
+                                lineHistoryPosition++;
+                                lineLength = strlen(lineHistory[lineHistoryPosition]);
+                                lineBufferSize = strlen(lineHistory[lineHistoryPosition]) + 1;
+                                lineCursorPosition = lineLength;
+                                lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
+                                free(lineBuffer);
+                                lineBuffer = calloc(lineBufferSize, sizeof(char));
+                                strcpy(lineBuffer, lineHistory[lineHistoryPosition]);
+                            }
+                            break;
+                        case 'B': // down arrow key
+                            // get next record in history
+                            if (lineHistoryPosition > 0) {
+                                lineHistoryPosition--;
+                                lineLength = strlen(lineHistory[lineHistoryPosition]);
+                                lineBufferSize = strlen(lineHistory[lineHistoryPosition]) + 1;
+                                lineCursorPosition = lineLength;
+                                lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
+                                free(lineBuffer);
+                                lineBuffer = calloc(lineBufferSize, sizeof(char));
+                                strcpy(lineBuffer, lineHistory[lineHistoryPosition]);
+                            }    
                             break;
                     }
                 }
