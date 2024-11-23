@@ -8,7 +8,7 @@
 #include <sys/ioctl.h>
 
 struct termios initial_terminal_settings;
-static char historyPath[] = "./craftlinehistory.txt";
+static char historyFilePath[] = "./craftlinehistory.txt";
 static int historyBufferSize = 11;
 static char** historyBuffer = NULL;
 
@@ -39,7 +39,7 @@ void disableRawTerminal() {
 
 void restoreHistory() {
     FILE* historyFile;
-    historyFile = fopen(historyPath, "r+");
+    historyFile = fopen(historyFilePath, "r+");
     if (historyFile != NULL) {
         for (int i = 1; i < historyBufferSize; i++) {
             char* line = NULL;
@@ -56,7 +56,7 @@ void restoreHistory() {
 
 void saveHistory() {
     FILE* historyFile;
-    historyFile = fopen(historyPath, "a+");
+    historyFile = fopen(historyFilePath, "a+");
     ftruncate(fileno(historyFile), 0);
     for (int i = 1; i < historyBufferSize; i++) {
         if (historyBuffer[i] != NULL) {
