@@ -126,6 +126,7 @@ char* craftLine(char* prompt) {
                 break;
             case 3: // ctrl+c
                 disableRawTerminal();
+                write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
                 exit(EXIT_SUCCESS);
             case 4: // ctrl+d
                 break;
