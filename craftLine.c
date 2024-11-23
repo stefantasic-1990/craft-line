@@ -9,8 +9,8 @@
 
 struct termios initial_terminal_settings;
 static char lineHistoryPath[100] = "./craftlinehistory.txt";
-static int lineHistorySize = 10;
-static char* lineHistoryBuffer[100] = {NULL};
+static int lineHistoryBufferSize = 11;
+static char** lineHistoryBuffer = NULL;
 
 int enableRawTerminal() {
     
@@ -41,7 +41,7 @@ void restoreLineHistory() {
     FILE* historyFile;
     historyFile = fopen(lineHistoryPath, "r+");
     if (historyFile != NULL) {
-        for (int i = 1; i < lineHistorySize; i++) {
+        for (int i = 1; i < lineHistoryBufferSize; i++) {
             char* line = NULL;
             size_t lineLength = 0;
             getline(&line, &lineLength, historyFile);
@@ -58,7 +58,7 @@ void saveLineHistory() {
     FILE* historyFile;
     historyFile = fopen(lineHistoryPath, "a+");
     ftruncate(fileno(historyFile), 0);
-    for (int i = 1; i < lineHistorySize; i++) {
+    for (int i = 1; i < lineHistoryBufferSize; i++) {
         if (lineHistoryBuffer[i] != NULL) {
             fprintf(historyFile, "%s\n", lineHistoryBuffer[i]);
             fflush(historyFile);
@@ -68,18 +68,19 @@ void saveLineHistory() {
 }
 
 void addLineHistory(char* lineBuffer) {
-    free(lineHistoryBuffer[lineHistorySize - 1]);
-    memmove(lineHistoryBuffer + 2, lineHistoryBuffer + 1, lineHistorySize*sizeof(char*)*2 - sizeof(char*)*2);
+    free(lineHistoryBuffer[lineHistoryBufferSize - 1]);
+    memmove(lineHistoryBuffer + 2, lineHistoryBuffer + 1, lineHistoryBufferSize*sizeof(char*)*2 - sizeof(char*)*2);
     lineHistoryBuffer[1] = strdup(lineBuffer);
 }
 
 char* craftLine(char* prompt) {
+    int promptLength = strlen(prompt);
+    int lineHistoryPosition = 0;
+
     int lineLength = 0;
     int lineCursorPosition = 0;
     int lineDisplayOffset = 0;
     int lineDisplayLength = 0;
-    int promptLength = strlen(prompt);
-    int lineHistoryPosition = 0;
 
     char * lineBuffer;
     int lineBufferSize = 100;
@@ -91,7 +92,9 @@ char* craftLine(char* prompt) {
     if (ioctl(1, TIOCGWINSZ, &ws) == -1) {terminalWindowWidth = 80;} else {terminalWindowWidth = ws.ws_col - 1;}
     lineDisplayLength = terminalWindowWidth - promptLength;
 
-    int historyCursorPosition;
+    if (lineHistoryBuffer == NULL) {
+        lineHistoryBuffer = calloc(lineHistoryBufferSize, sizeof(char*));
+    }
 
     enableRawTerminal();
     restoreLineHistory();
@@ -166,7 +169,7 @@ char* craftLine(char* prompt) {
                             break;
                         case 'A': // up arrow key
                             // get previous record in history
-                            if ((lineHistoryBuffer[lineHistoryPosition + 1] != NULL) && lineHistoryPosition < (lineHistorySize - 1)) {
+                            if ((lineHistoryBuffer[lineHistoryPosition + 1] != NULL) && lineHistoryPosition < (lineHistoryBufferSize - 1)) {
                                 if (lineHistoryPosition == 0) {lineHistoryBuffer[0] = strdup(lineBuffer);}
                                 lineHistoryPosition++;
                                 lineLength = strlen(lineHistoryBuffer[lineHistoryPosition]);
