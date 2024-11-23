@@ -12,23 +12,19 @@ struct termios initial_terminal_settings;
 int enableRawTerminal() {
     struct termios modified_terminal_settings;
 
-    // save initial terminal settings
-    if (tcgetattr(STDIN_FILENO, &initial_terminal_settings) == -1) {return 1;} 
-
-    // check TTY device
-    if (!isatty(STDIN_FILENO)) {return -1;} 
-
-    // change terminal settings
-    if (tcgetattr(STDIN_FILENO, &modified_terminal_settings) == -1) {return 1;} 
-    modified_terminal_settings.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-    modified_terminal_settings.c_oflag &= ~(OPOST);
-    modified_terminal_settings.c_cflag |= (CS8);
-    modified_terminal_settings.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-    modified_terminal_settings.c_cc[VMIN] = 1; 
-    modified_terminal_settings.c_cc[VTIME] = 0;
-
-    // set new terminal settings
-    if (tcsetattr(STDIN_FILENO,TCSAFLUSH,&modified_terminal_settings) == -1) {return -1;};
+    if (isatty(STDIN_FILENO)) { 
+        tcgetattr(STDIN_FILENO, &initial_terminal_settings);
+        
+        modified_terminal_settings = initial_terminal_settings;
+        modified_terminal_settings.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+        modified_terminal_settings.c_oflag &= ~(OPOST);
+        modified_terminal_settings.c_cflag |= (CS8);
+        modified_terminal_settings.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+        modified_terminal_settings.c_cc[VMIN] = 1; 
+        modified_terminal_settings.c_cc[VTIME] = 0;
+        
+        tcsetattr(STDIN_FILENO,TCSAFLUSH,&modified_terminal_settings);
+    } else {return -1;} 
 
     return 0;
 }
