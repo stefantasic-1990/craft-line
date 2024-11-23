@@ -8,7 +8,7 @@
 #include <sys/ioctl.h>
 
 struct termios initial_terminal_settings;
-static char lineHistoryPath[100] = "./craftlinehistory.txt";
+static char lineHistoryPath[] = "./craftlinehistory.txt";
 static int lineHistoryBufferSize = 11;
 static char** lineHistoryBuffer = NULL;
 
