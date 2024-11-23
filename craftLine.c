@@ -7,7 +7,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 
-static struct termios initial_terminal_settings; // original terminal settings
+struct termios initial_terminal_settings;
 
 int enableRawTerminal() {
     struct termios modified_terminal_settings;
