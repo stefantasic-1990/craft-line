@@ -9,28 +9,35 @@
 
 struct termios initial_terminal_settings;
 
-int enableRawTerminal() {
-    struct termios modified_terminal_settings;
+int enableRawTerminal(bool state) {
+    static struct termios initial_terminal_settings;
+    static bool inRawMode = false;
+    static bool initialized = false;
 
-    if (isatty(STDIN_FILENO)) { 
-        tcgetattr(STDIN_FILENO, &initial_terminal_settings);
-        
-        modified_terminal_settings = initial_terminal_settings;
-        modified_terminal_settings.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-        modified_terminal_settings.c_oflag &= ~(OPOST);
-        modified_terminal_settings.c_cflag |= (CS8);
-        modified_terminal_settings.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-        modified_terminal_settings.c_cc[VMIN] = 1; 
-        modified_terminal_settings.c_cc[VTIME] = 0;
-        
-        tcsetattr(STDIN_FILENO,TCSAFLUSH,&modified_terminal_settings);
-    } else {return -1;} 
+    if (state == true && inRawMode == false) {
+
+        if (isatty(STDIN_FILENO)) { 
+            tcgetattr(STDIN_FILENO, &initial_terminal_settings);
+            struct termios modified_terminal_settings;
+            modified_terminal_settings = initial_terminal_settings;
+
+            modified_terminal_settings.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+            modified_terminal_settings.c_oflag &= ~(OPOST);
+            modified_terminal_settings.c_cflag |= (CS8);
+            modified_terminal_settings.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+            modified_terminal_settings.c_cc[VMIN] = 1; 
+            modified_terminal_settings.c_cc[VTIME] = 0;
+            
+            tcsetattr(STDIN_FILENO,TCSAFLUSH,&modified_terminal_settings);
+            inRawMode = true;
+        } else {return -1;} 
+
+    } else if (state == false && inRawMode == true) {
+        tcsetattr(STDIN_FILENO,TCSAFLUSH,&initial_terminal_settings);
+        inRawMode = false;
+    }
 
     return 0;
-}
-
-void disableRawTerminal() {
-    tcsetattr(STDIN_FILENO,TCSAFLUSH,&initial_terminal_settings);
 }
 
 char* craftLine(char* prompt) {
@@ -52,7 +59,7 @@ char* craftLine(char* prompt) {
 
     int historyCursorPosition;
 
-    enableRawTerminal();
+    enableRawTerminal(true);
 
     do {
         write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
@@ -80,7 +87,7 @@ char* craftLine(char* prompt) {
                 }
                 break;
             case 3: // ctrl+c
-                disableRawTerminal();
+                enableRawTerminal(false);
                 exit(EXIT_SUCCESS);
             case 4: // ctrl+d
                 break;
@@ -144,7 +151,7 @@ char* craftLine(char* prompt) {
     } while (true);
 
     returnLine:
-        disableRawTerminal();
+        enableRawTerminal(false);
         write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
         return lineBuffer;
 }
