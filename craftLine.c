@@ -110,7 +110,7 @@ char* craftLine(char* prompt) {
         write(STDOUT_FILENO, cursorEscCode, strlen(cursorEscCode));
 
         char c;
-        read(STDOUT_FILENO, &c, 1);
+        read(STDIN_FILENO, &c, 1);
 
         switch(c) {
             case 13: // enter
@@ -222,8 +222,9 @@ char* craftLine(char* prompt) {
         if (lineBuffer[0] != '\0') {
             addToHistory(lineBuffer);
         }
-        disableRawTerminal();
         saveHistory();
+        
+        disableRawTerminal();
         write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
         return lineBuffer;
 }
