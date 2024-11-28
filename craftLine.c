@@ -28,7 +28,9 @@ int enableRawTerminal() {
         modified_terminal_settings.c_cc[VTIME] = 0;
         
         tcsetattr(STDIN_FILENO,TCSAFLUSH,&modified_terminal_settings);
-    } else {return -1;} 
+    } else {
+        return -1;
+    } 
 
     return 0;
 }
