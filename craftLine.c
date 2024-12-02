@@ -84,7 +84,7 @@ char* craftLine(char* prompt) {
     int lineDisplayOffset = 0;
     int lineDisplayLength = 0;
 
-    char * lineBuffer;
+    char* lineBuffer;
     int lineBufferSize = 100;
     lineBuffer = calloc(lineBufferSize, sizeof(char));
     lineBuffer[0] = '\0';
@@ -148,7 +148,7 @@ char* craftLine(char* prompt) {
                 break;
             case 23: // ctrl+w
                 break;
-            case 21: // ctrl+u - clear input
+            case 21: // ctrl+u / clear input
                 free(lineBuffer);
                 lineBuffer = calloc(lineBufferSize, sizeof(char));
                 lineCursorPosition = 0;
@@ -201,7 +201,7 @@ char* craftLine(char* prompt) {
                 }
                 break;
             }
-            default: // store character in buff
+            default: // store character in line buffer
                 memmove(lineBuffer+lineCursorPosition+1, lineBuffer+lineCursorPosition, lineLength-lineCursorPosition);
                 lineBuffer[lineCursorPosition] = c;
                 lineCursorPosition++;
@@ -225,8 +225,7 @@ char* craftLine(char* prompt) {
             addToHistory(lineBuffer);
         }
         saveHistory();
-        
         disableRawTerminal();
-        write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
+        write(STDOUT_FILENO, "\x0a", strlen("\x0a"));
         return lineBuffer;
 }
