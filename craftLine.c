@@ -13,9 +13,7 @@ static int historyBufferSize = 11;
 static char** historyBuffer = NULL;
 
 int enableRawTerminal() {
-    
     struct termios modified_terminal_settings;
-
     if (isatty(STDIN_FILENO)) { 
         tcgetattr(STDIN_FILENO, &initial_terminal_settings);
 
@@ -26,12 +24,11 @@ int enableRawTerminal() {
         modified_terminal_settings.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
         modified_terminal_settings.c_cc[VMIN] = 1; 
         modified_terminal_settings.c_cc[VTIME] = 0;
-        
+
         tcsetattr(STDIN_FILENO,TCSAFLUSH,&modified_terminal_settings);
     } else {
         return -1;
     } 
-
     return 0;
 }
 
@@ -85,8 +82,8 @@ char* craftLine(char* prompt) {
     int lineDisplayLength = 0;
 
     char* lineBuffer;
-    int lineBufferSize = 100;
-    lineBuffer = calloc(lineBufferSize, sizeof(char));
+    int lineBufferMaxSize = 100;
+    lineBuffer = calloc(lineBufferMaxSize, sizeof(char));
     lineBuffer[0] = '\0';
 
     struct winsize ws;
@@ -106,7 +103,7 @@ char* craftLine(char* prompt) {
     do {
         write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
         write(STDOUT_FILENO, prompt, promptLength);
-        write(STDOUT_FILENO, (lineBuffer + lineDisplayOffset), (lineBufferSize < lineDisplayLength) ? lineBufferSize : lineDisplayLength);
+        write(STDOUT_FILENO, (lineBuffer + lineDisplayOffset), (lineBufferMaxSize < lineDisplayLength) ? lineBufferMaxSize : lineDisplayLength);
         write(STDOUT_FILENO, "\x1b[0K", strlen("\x1b[0K"));
 
         char cursorEscCode[10];
@@ -152,7 +149,7 @@ char* craftLine(char* prompt) {
                 break;
             case 21: // ctrl+u / clear input
                 free(lineBuffer);
-                lineBuffer = calloc(lineBufferSize, sizeof(char));
+                lineBuffer = calloc(lineBufferMaxSize, sizeof(char));
                 lineCursorPosition = 0;
                 lineDisplayOffset = 0;
                 lineLength = 0;
@@ -178,11 +175,11 @@ char* craftLine(char* prompt) {
                                 if (lineHistoryPosition == 0) {historyBuffer[0] = strdup(lineBuffer);}
                                 lineHistoryPosition++;
                                 lineLength = strlen(historyBuffer[lineHistoryPosition]);
-                                lineBufferSize = strlen(historyBuffer[lineHistoryPosition]) + 1;
+                                lineBufferMaxSize = strlen(historyBuffer[lineHistoryPosition]) + 1;
                                 lineCursorPosition = lineLength;
                                 lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
                                 free(lineBuffer);
-                                lineBuffer = calloc(lineBufferSize, sizeof(char));
+                                lineBuffer = calloc(lineBufferMaxSize, sizeof(char));
                                 strcpy(lineBuffer, historyBuffer[lineHistoryPosition]);
                             }
                             break;
@@ -191,11 +188,11 @@ char* craftLine(char* prompt) {
                             if (lineHistoryPosition > 0) {
                                 lineHistoryPosition--;
                                 lineLength = strlen(historyBuffer[lineHistoryPosition]);
-                                lineBufferSize = strlen(historyBuffer[lineHistoryPosition]) + 1;
+                                lineBufferMaxSize = strlen(historyBuffer[lineHistoryPosition]) + 1;
                                 lineCursorPosition = lineLength;
                                 lineDisplayOffset = (lineLength < lineDisplayLength) ? 0 : lineLength - lineDisplayLength;
                                 free(lineBuffer);
-                                lineBuffer = calloc(lineBufferSize, sizeof(char));
+                                lineBuffer = calloc(lineBufferMaxSize, sizeof(char));
                                 strcpy(lineBuffer, historyBuffer[lineHistoryPosition]);
                             }    
                             break;
@@ -213,9 +210,9 @@ char* craftLine(char* prompt) {
                 break;
         }
         // allocate more space for buff if required
-        if (lineLength + 1 >= lineBufferSize) {
-            lineBufferSize += lineBufferSize;
-            lineBuffer = realloc(lineBuffer, lineBufferSize);
+        if (lineLength + 1 >= lineBufferMaxSize) {
+            lineBufferMaxSize += lineBufferMaxSize;
+            lineBuffer = realloc(lineBuffer, lineBufferMaxSize);
             if (!lineBuffer) {return NULL;}
         }
     } while (true);
