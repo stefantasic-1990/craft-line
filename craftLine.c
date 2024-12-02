@@ -98,8 +98,10 @@ char* craftLine(char* prompt) {
         historyBuffer = calloc(historyBufferSize, sizeof(char*));
     }
 
-    enableRawTerminal();
     restoreHistory();
+    if (enableRawTerminal() == -1) {
+        return NULL;
+    }
 
     do {
         write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
