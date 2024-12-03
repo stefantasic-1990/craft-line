@@ -12,6 +12,12 @@ static char historyFilePath[] = "./craftlinehistory.txt";
 static int historyBufferSize = 11;
 static char** historyBuffer = NULL;
 
+/**
+ * Function:  enableRawTerminal
+ * ----------------------
+ * Configure terminal device driver settigs.
+ * 
+ */
 int enableRawTerminal() {
     struct termios modified_terminal_settings;
     if (isatty(STDIN_FILENO)) { 
@@ -32,10 +38,22 @@ int enableRawTerminal() {
     return 0;
 }
 
+/**
+ * Function:  disableRawTerminal
+ * ----------------------
+ * Restore original terminal device driver settings.
+ * 
+ */
 void disableRawTerminal() {
     tcsetattr(STDIN_FILENO,TCSAFLUSH,&initial_terminal_settings);
 }
 
+/**
+ * Function:  restoreHistory
+ * ----------------------
+ * Restore command line history from file.
+ * 
+ */
 void restoreHistory() {
     FILE* historyFile;
     historyFile = fopen(historyFilePath, "r+");
@@ -53,6 +71,12 @@ void restoreHistory() {
     }
 }
 
+/**
+ * Function:  saveHistory
+ * ----------------------
+ * Save the most recent command line to history file.
+ * 
+ */
 void saveHistory() {
     FILE* historyFile;
     historyFile = fopen(historyFilePath, "a+");
@@ -72,6 +96,15 @@ void addToHistory(char* lineBuffer) {
     historyBuffer[1] = strdup(lineBuffer);
 }
 
+/**
+ * Function:  craftLine
+ * ----------------------
+ * Prompt terminal user for input, provide input editing, and return the input command line.
+ * 
+ * @param prompt The prompt string to use.
+ * @return Returns the input command line string.
+ * 
+ */
 char* craftLine(char* prompt) {
     int promptLength = strlen(prompt);
     int lineHistoryPosition = 0;
