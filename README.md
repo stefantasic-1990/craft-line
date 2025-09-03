@@ -11,3 +11,18 @@ More specifically, when called it:
 2. Provides basic single-line editing capabilities to the user, including a scrollable command history.
 3. Returns the finalized line as a heap-allocated string when the user presses `ENTER`.
 4. Flips the terminal back to its original settings before exiting.
+
+## Features
+
+- Written in plain C with no external dependencies.
+- Raw mode input, byte-by-byte key handling.
+- Single-line editing, minimal on-screen re-paint using ANSI escape sequences.
+- Simple persistent history stored as `craftLineHistory.txt`.
+
+## Example
+
+The repo contains `example.c` which can be used as a demo of how CraftLine works.
+To run example simply compile it together with `craftLine.c` and execute the output program.
+
+For instance, with `gcc`:
+<pre> ```  gcc example.c craftLine.c -o example.o  ``` </pre>

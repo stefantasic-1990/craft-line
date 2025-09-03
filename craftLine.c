@@ -11,7 +11,7 @@
 struct termios initial_terminal_settings;
 
 // simple on-disk command history maintained as a txt file.
-static char historyFilePath[] = "./craftlinehistory.txt";
+static char historyFilePath[] = "./craftLineHistory.txt";
 
 /* fixed-size command buffer:
  * - historyBuffer[0] is a scratch slot (for current line).
