@@ -1,12 +1,13 @@
 # craftLine
 
-## What is CraftLine?
-
 CraftLine is a minimal interactive line editor for POSIX terminals.
-It's meant to be used as an input editing component for CLI programs.
-Think "bare-bones GNU Readline".
+I wrote it to be used as an input editing component for CLI programs.
+Think "bare-bones GNU Readline", and you get the picture.
 
-More specifically, when called it:
+To use it, save `craftLine.c` and `craftLine.h` and import the header file into your program.
+You can then call `char* craftLine(char* prompt)` within your code to prompt the user for input.
+
+In specific, when called it:
 1. Flips the terminal into raw mode with `termios`.
 2. Provides basic single-line editing capabilities to the user, including a scrollable command history.
 3. Returns the finalized line as a heap-allocated string when the user presses `ENTER`.
