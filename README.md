@@ -25,4 +25,7 @@ The repo contains a file named `example.c` which can be used as a demo of how Cr
 To run it simply compile it together with `craftLine.c` and execute the output program.
 
 For instance, to compile with `gcc`:
-<pre> ```  gcc example.c craftLine.c -o example.o  ``` </pre>
+<pre>gcc example.c craftLine.c -o example.o</pre>
+
+Then, run the program:
+<pre>./example.o</pre>
