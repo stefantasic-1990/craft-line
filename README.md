@@ -20,6 +20,7 @@ On the other hand, I'm sure that there are things that can be improved.
 
 ## Features
 
+These are the general features:
 - Written in plain C with no external dependencies.
 - Raw mode input, byte-by-byte key handling.
 - Single-line editing, minimal on-screen re-paint using ANSI escape sequences.
@@ -27,7 +28,7 @@ On the other hand, I'm sure that there are things that can be improved.
 
 ## Line Editing Key Bindings
 
-Below are the currently implemented keys for line editing:
+These are the currently implemented keys for line editing:
 1. `ENTER`: finish editing line and return it.
 2. `Left`/`Right`: move cursor left and right.
 3. `Up`/`Down`: scroll through the history.
