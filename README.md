@@ -12,6 +12,12 @@ More specifically, when called it:
 3. Returns the finalized line as a heap-allocated string when the user presses `ENTER`.
 4. Flips the terminal back to its original settings before exiting.
 
+### Disclaimer
+
+Note: this program is far from perfect and was written by me for educational purposes.
+In other words, I would not be surprised if there are sneaky bugs I missed.
+On the other hand, I'm sure that there are things that can be improved.
+
 ## Features
 
 - Written in plain C with no external dependencies.
