@@ -23,7 +23,7 @@ I'm also sure that there are things that can be improved.
 
 ## Features
 
-These are the general features:
+These are the general features of `craftLine`:
 - Written in plain C with no external dependencies.
 - Raw mode input, byte-by-byte key handling.
 - Single-line editing, minimal on-screen re-paint using ANSI escape sequences.
@@ -31,7 +31,7 @@ These are the general features:
 
 ## Line Editing Key Bindings
 
-These are the currently implemented keys for line editing:
+These are the currently implemented keys for user line editing:
 1. `ENTER`: finish editing line and return it.
 2. `Left`/`Right`: move cursor left and right.
 3. `Up`/`Down`: scroll through the history.
@@ -41,12 +41,12 @@ These are the currently implemented keys for line editing:
 
 ## Demo
 
-The repo contains a file named `example.c` which can be used as a demo of how CraftLine works.
-To run it simply compile it together with `craftLine.c` and execute the output program.
+The repo contains a file named `example.c` which serves as a demo of how `craftLine` works.
+To run it: compile it together with `craftLine.c` and execute the output program.
 
 For instance, to compile with `gcc`:
 <pre>gcc example.c craftLine.c -o example</pre>
 
-Once you run the executable you'll be prompted to edit a line.
-When you are done, press `ENTER`, and the input line will be echoed back to the terminal screen.
-To exit, just press `CTRL+C`.
+Once you run the executable you'll be prompted to input a line and provided editing capabilities.
+When done editing, press `ENTER`, and the line will be echoed back to the terminal screen.
+To exit, press `CTRL+C`.
