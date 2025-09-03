@@ -17,9 +17,9 @@ In the last section of this `README.md` you can find a simple demo.
 
 ### Disclaimer
 
-This program is not thoroughly tested and was written by me for educational purposes.
-In other words, I wouldn't be surprised if there are sneaky bugs I missed.
-On the other hand, I'm sure that there are things that can be improved.
+This program was written by me for educational purposes.
+In other words, I wouldn't be surprised if there are some sneaky bugs I missed.
+I'm also sure that there are things that can be improved.
 
 ## Features
 
