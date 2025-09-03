@@ -19,6 +19,16 @@ More specifically, when called it:
 - Single-line editing, minimal on-screen re-paint using ANSI escape sequences.
 - Simple persistent history stored as `craftLineHistory.txt`.
 
+## Key Binding Implementations
+
+Below are the currently implemented keys for line editing:
+1. `ENTER`: finish editing line and return it.
+2. `Left`/`Right`: move cursor left and right.
+3. `Up`/`Down`: scroll through the history.
+4. `Backspace`: delete char to the left of cursor.
+5. `CTRL+U`: clear entire line editing buffer.
+6. `CTRL+C`: exit process.
+
 ## Example
 
 The repo contains a file named `example.c` which can be used as a demo of how CraftLine works.
@@ -26,6 +36,3 @@ To run it simply compile it together with `craftLine.c` and execute the output p
 
 For instance, to compile with `gcc`:
 <pre>gcc example.c craftLine.c -o example.o</pre>
-
-Then, run the program:
-<pre>./example.o</pre>
