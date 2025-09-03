@@ -6,13 +6,14 @@ Think "bare-bones GNU Readline", and you get the picture.
 
 To use it, save `craftLine.c` and `craftLine.h` and import the header file into your program.
 You can then call `char* craftLine(char* prompt)` within your code to prompt the user for input.
-In the last section of this `readme.md` you'll find a simple demo.
 
 In specific, when called it:
 1. Flips the terminal into raw mode with `termios`.
 2. Provides basic single-line editing capabilities to the user, including a scrollable command history.
 3. Returns the finalized line as a heap-allocated string when the user presses `ENTER`.
 4. Flips the terminal back to its original settings before exiting.
+
+In the last section of this `README.md` you can find a simple demo.
 
 ### Disclaimer
 
