@@ -19,7 +19,7 @@ More specifically, when called it:
 - Single-line editing, minimal on-screen re-paint using ANSI escape sequences.
 - Simple persistent history stored as `craftLineHistory.txt`.
 
-## Key Binding Implementations
+## Line Editing Key Bindings
 
 Below are the currently implemented keys for line editing:
 1. `ENTER`: finish editing line and return it.
