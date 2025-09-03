@@ -14,8 +14,8 @@ More specifically, when called it:
 
 ### Disclaimer
 
-This program is far from perfect and was written by me for educational purposes.
-In other words, I would not be surprised if there are sneaky bugs I missed.
+This program is not perfect or thoroughly tested and was written by me for educational purposes.
+In other words, I wouldn't be surprised if there are sneaky bugs I missed.
 On the other hand, I'm sure that there are things that can be improved.
 
 ## Features
