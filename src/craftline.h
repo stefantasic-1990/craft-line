@@ -1,6 +1,6 @@
 #ifndef CRAFTLINE_H
 #define CRAFTLINE_H
 
-char* craftLine(char* prompt);
+char *craftline(char *prompt);
 
 #endif
