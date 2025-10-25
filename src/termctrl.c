@@ -1,44 +1,47 @@
 #include <unistd.h>
 #include <termios.h>
 
-struct termios initial_terminal_settings;
+static struct termios prev_term_conf;
 
-int term_enable_raw()
+int term_enable_raw(void)
 {
-    struct termios modified_terminal_settings;
-    if (isatty(STDIN_FILENO)) {
-        // save current settings for later restore.
-        tcgetattr(STDIN_FILENO, &initial_terminal_settings);
+    struct termios raw_term_conf;
 
-        modified_terminal_settings = initial_terminal_settings;
-
-        // configure terminal input flags; turn off special handling of input.
-        // no break-to-signal, CR→NL mapping, parity check, stripping, or XON/XOFF flow control.
-        modified_terminal_settings.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-
-        // configure output flags; no post-processing, send output bytes as-is, no NL→CRNL conversion, etc.
-        modified_terminal_settings.c_oflag &= ~(OPOST);
-
-        // configure control flags; use 8-bit characters.
-        modified_terminal_settings.c_cflag |= CS8;
-
-        // configure local flags; turn on raw input mode.
-        // no echo, no canonical line buffering/editing, no extended functions, no signal generation.
-        modified_terminal_settings.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-
-        // configure read buffer settings: return after 1 byte, no timeout
-        modified_terminal_settings.c_cc[VMIN]  = 1;
-        modified_terminal_settings.c_cc[VTIME] = 0;
-
-        // apply modified settings and flush pending input.
-        tcsetattr(STDIN_FILENO, TCSAFLUSH, &modified_terminal_settings);
-    } else {
+    if (isatty(STDIN_FILENO) == 0)
         return -1;
-    }
+
+    if (tcgetattr(STDIN_FILENO, &prev_term_conf) == -1)
+        return -1;
+    
+    raw_term_conf = prev_term_conf;
+
+    // Configure terminal input flags.
+    // No break-to-signal, CR→NL mapping, parity check, stripping, or XON/XOFF flow control.
+    raw_term_conf.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+
+    // Configure output flags.
+    // No post-processing: send output bytes as-is, no NL→CRNL conversion, etc.
+    raw_term_conf.c_oflag &= ~(OPOST);
+
+    // Configure control flags: use 8-bit characters.
+    raw_term_conf.c_cflag |= CS8;
+
+    // Configure local flags: turn on raw input mode.
+    // No echo, no canonical line buffering/editing, no extended functions, no signal generation.
+    raw_term_conf.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+
+    // Configure read buffer settings: return after 1 byte, no timeout
+    raw_term_conf.c_cc[VMIN]  = 1;
+    raw_term_conf.c_cc[VTIME] = 0;
+
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw_term_conf) == -1) return -1;
+
     return 0;
 }
 
-int term_disable_raw()
+int term_disable_raw(void)
 {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &initial_terminal_settings);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &prev_term_conf) == -1) return -1;
+    
+    return 0;
 }
