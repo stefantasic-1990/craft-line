@@ -32,10 +32,10 @@ char *line_edit(char *prompt)
 
     do {
         // repaint: move to col 0, print prompt + visible slice of line buffer, clear to end of window (removes leftover chars if needed).
-        write(STDOUT_FILENO, "\x1b[0G", strlen("\x1b[0G"));
+        write(STDOUT_FILENO, "\x1b[0G", 4);
         write(STDOUT_FILENO, prompt, prompt_len);
         write(STDOUT_FILENO, (line_buffer + line_display_offset), (line_buffer_size < line_display_len) ? line_buffer_size : line_display_len);
-        write(STDOUT_FILENO, "\x1b[0K", strlen("\x1b[0K"));
+        write(STDOUT_FILENO, "\x1b[0K", 4);
 
         // place cursor after prompt at logical position.
         char cursor_esc_code[10];
@@ -64,7 +64,7 @@ char *line_edit(char *prompt)
 
             case 3: // ctrl+c: restore TTY to original settings then exit.
                 term_disable_raw();
-                write(STDOUT_FILENO, "\x0a", sizeof("\x0a"));
+                write(STDOUT_FILENO, "\x0a", 1);
                 exit(EXIT_SUCCESS);
 
             case 4: // ctrl+d:
