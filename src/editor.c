@@ -4,8 +4,9 @@
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 
-void redraw_line(char *line_buffer, char *prompt, int prompt_len, int curr_line_len, int line_display_len, int curr_cursor_pos, int line_display_offset)
+static void redraw_line(char *line_buffer, char *prompt, int prompt_len, int curr_line_len, int line_display_len, int curr_cursor_pos, int line_display_offset)
 {
     // repaint: move to col 0, print prompt + visible slice of line buffer, clear to end of window (removes leftover chars if needed).
     write(STDOUT_FILENO, "\x1b[0G", 4);
@@ -17,6 +18,17 @@ void redraw_line(char *line_buffer, char *prompt, int prompt_len, int curr_line_
     char cursor_esc_code[10];
     snprintf(cursor_esc_code, sizeof(cursor_esc_code), "\x1b[%iG", prompt_len + 1 + curr_cursor_pos - line_display_offset);
     write(STDOUT_FILENO, cursor_esc_code, strlen(cursor_esc_code));
+}
+
+static int read_escseq(char escseq[2]) {
+    for (int i = 0; i < 2; i++) {
+        ssize_t n;
+        do {
+            n = read(STDIN_FILENO, escseq + i, 1);
+        } while (n == -1 && errno == EINTR);  // retry if interrupted
+        if (n == -1) return -1;
+    }
+    return 0;
 }
 
 char *line_edit(char *prompt)
@@ -123,15 +135,10 @@ char *line_edit(char *prompt)
                 curr_line_len = 0;
                 break;
 
-            case 27: { // esc: parse simple CSI arrow keys.
-                char esc_sequence[3];
-                // read next two bytes; ignore errors.
-                if (read(STDIN_FILENO, esc_sequence, 1) == -1) 
-                    break;
-                if (read(STDIN_FILENO, esc_sequence+1, 1) == -1) 
-                    break;
-                if (esc_sequence[0] == '[') {
-                    switch(esc_sequence[1]) {
+            case 27: // esc: parse simple CSI arrow keys.
+                char escseq[2];
+                if (read_escseq(escseq) == 0 && escseq[0] == '[') {
+                    switch(escseq[1]) {
                         case 'C': // right arrow: move cursor to right
                             if (curr_cursor_pos < curr_line_len) 
                                 curr_cursor_pos++;
@@ -151,7 +158,6 @@ char *line_edit(char *prompt)
                     }
                 }
                 break;
-            }
 
             default: // insert character at cursor.
                 memmove(line_buffer + curr_cursor_pos + 1, line_buffer + curr_cursor_pos, curr_line_len - curr_cursor_pos);
