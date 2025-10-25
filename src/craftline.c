@@ -2,7 +2,6 @@
 #include "line.h"
 #include <string.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -20,30 +19,14 @@ static int read_escseq(char escseq[2]) {
 
 char *craftline(char *prompt)
 {
+    line_state line;
     int prompt_len = strlen(prompt);
-
-    // Initialize line state
-    line_state line = {0};
-    line.line_buffer_size = 100;
-    line.line_buffer = malloc(line.line_buffer_size);
-    line.line_buffer[0] = '\0';
-
-    // determine terminal window width to compute visible line region.
-    struct winsize ws;
-    int term_win_width;
-
-    if (ioctl(1, TIOCGWINSZ, &ws) == -1) {
-        term_win_width = 80;
-    } else {
-        term_win_width = ws.ws_col - 1;
-    }
-
-    line.line_display_len = term_win_width - prompt_len;
+    init_line(prompt_len, &line);
 
     if (term_enable_raw() == -1) return NULL;
 
     do {
-        redraw_line(prompt, prompt_len, line);
+        redraw_line(prompt, prompt_len, &line);
 
         // read a single byte in raw mode.
         char c;

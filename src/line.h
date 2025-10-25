@@ -10,6 +10,7 @@ typedef struct {
     int line_display_len;     // visible chars available on screen after prompt is printed; depends on window size.
 } line_state;
 
-void redraw_line(char *prompt, int prompt_len, line_state line);
+void redraw_line(char *prompt, int prompt_len, line_state *line);
+void init_line(int prompt_len, line_state *line);
 
 #endif
