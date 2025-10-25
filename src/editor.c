@@ -72,6 +72,8 @@ char *line_edit(char *prompt)
                     curr_cursor_pos--;
                     curr_line_len--;
                     line_buffer[curr_line_len] = '\0';
+                    if (line_display_offset > 0)
+                        line_display_offset--;
                 }
                 break;
 
