@@ -83,6 +83,12 @@ char *line_edit(char *prompt)
                 exit(EXIT_SUCCESS);
 
             case 4: // ctrl+d:
+                if (curr_line_len == 0) {
+                    term_disable_raw();
+                    write(STDOUT_FILENO, "\n", 1);
+                    free(line_buffer);
+                    return NULL;
+                }
                 break;
 
             case 20: // ctrl+t:
