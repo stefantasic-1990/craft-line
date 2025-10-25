@@ -12,7 +12,7 @@ char *line_edit(char *prompt)
     // Initialize line buffer
     char *line_buffer;
     int line_buffer_size = 100;
-    line_buffer = calloc(line_buffer_size, sizeof(char));
+    line_buffer = malloc(line_buffer_size);
     line_buffer[0] = '\0';
 
     // logical line state.
@@ -24,17 +24,22 @@ char *line_edit(char *prompt)
     // determine terminal window width to compute visible line region.
     struct winsize ws;
     int term_win_width;
-    if (ioctl(1, TIOCGWINSZ, &ws) == -1) {term_win_width = 80;} else {term_win_width = ws.ws_col - 1;}
+    
+    if (ioctl(1, TIOCGWINSZ, &ws) == -1) {
+        term_win_width = 80;
+    } else {
+        term_win_width = ws.ws_col - 1;
+    }
+
     line_display_len = term_win_width - prompt_len;
 
-    // enable raw terminal
     if (term_enable_raw() == -1) return NULL;
 
     do {
         // repaint: move to col 0, print prompt + visible slice of line buffer, clear to end of window (removes leftover chars if needed).
         write(STDOUT_FILENO, "\x1b[0G", 4);
         write(STDOUT_FILENO, prompt, prompt_len);
-        write(STDOUT_FILENO, (line_buffer + line_display_offset), (line_buffer_size < line_display_len) ? line_buffer_size : line_display_len);
+        write(STDOUT_FILENO, line_buffer + line_display_offset, curr_line_len < line_display_len ? curr_line_len : line_display_len);
         write(STDOUT_FILENO, "\x1b[0K", 4);
 
         // place cursor after prompt at logical position.
@@ -44,7 +49,10 @@ char *line_edit(char *prompt)
 
         // read a single byte in raw mode.
         char c;
-        read(STDIN_FILENO, &c, 1);
+        if (read(STDIN_FILENO, &c, 1) == -1) { 
+            term_disable_raw();
+            return NULL; 
+        }
 
         // handle input
         switch(c) {
@@ -105,17 +113,18 @@ char *line_edit(char *prompt)
             case 27: { // esc: parse simple CSI arrow keys.
                 char esc_sequence[3];
                 // read next two bytes; ignore errors.
-                if (read(STDIN_FILENO, esc_sequence, 1) == -1) {break;}
-                if (read(STDIN_FILENO, esc_sequence+1, 1) == -1) {break;}
+                if (read(STDIN_FILENO, esc_sequence, 1) == -1) break;
+                if (read(STDIN_FILENO, esc_sequence+1, 1) == -1) break;
                 if (esc_sequence[0] == '[') {
                     switch(esc_sequence[1]) {
                         case 'C': // right arrow: move cursor to right
-                            if (curr_cursor_pos < curr_line_len) {curr_cursor_pos++;}
-                            if ((curr_cursor_pos - line_display_offset) > line_display_len) {line_display_offset++;}
+                            if (curr_cursor_pos < curr_line_len) curr_cursor_pos++;
+                            if ((curr_cursor_pos - line_display_offset) > line_display_len) line_display_offset++;
                             break;
                         case 'D': // left arrow: move cursor to left
-                            if (curr_cursor_pos > 0) {curr_cursor_pos--;}
-                            if ((curr_cursor_pos - line_display_offset) < 0) {line_display_offset--;}
+                            if (curr_cursor_pos > 0) curr_cursor_pos--;
+                            if (curr_cursor_pos < line_display_offset)
+                                line_display_offset = curr_cursor_pos;
                             break;
                         case 'A': // up arrow: move to previous history entry.
                             break;
@@ -132,7 +141,8 @@ char *line_edit(char *prompt)
                 curr_cursor_pos++;
                 curr_line_len++;
                 line_buffer[curr_line_len] = '\0';
-                if ((curr_cursor_pos - line_display_offset) > line_display_len) {line_display_offset++;}
+                if (curr_cursor_pos - line_display_offset > line_display_len)
+                    line_display_offset++;
                 break;
         }
 
@@ -140,12 +150,13 @@ char *line_edit(char *prompt)
         if (curr_line_len + 1 >= line_buffer_size) {
             line_buffer_size += line_buffer_size;
             line_buffer = realloc(line_buffer, line_buffer_size);
-            if (!line_buffer) {return NULL;}
+            if (!line_buffer) return NULL;
         }
-    } while (true);
+    } while (1);
 
     return_line:
         term_disable_raw();
-        write(STDOUT_FILENO, "\x0a", strlen("\x0a"));
+        write(STDOUT_FILENO, "\x0a", 1);
+
         return line_buffer;
 }
