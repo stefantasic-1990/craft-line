@@ -5,6 +5,20 @@
 #include <stdio.h>
 #include <unistd.h>
 
+void redraw_line(char *line_buffer, char *prompt, int prompt_len, int curr_line_len, int line_display_len, int curr_cursor_pos, int line_display_offset)
+{
+    // repaint: move to col 0, print prompt + visible slice of line buffer, clear to end of window (removes leftover chars if needed).
+    write(STDOUT_FILENO, "\x1b[0G", 4);
+    write(STDOUT_FILENO, prompt, prompt_len);
+    write(STDOUT_FILENO, line_buffer + line_display_offset, curr_line_len < line_display_len ? curr_line_len : line_display_len);
+    write(STDOUT_FILENO, "\x1b[0K", 4);
+
+    // place cursor after prompt at logical position.
+    char cursor_esc_code[10];
+    snprintf(cursor_esc_code, sizeof(cursor_esc_code), "\x1b[%iG", prompt_len + 1 + curr_cursor_pos - line_display_offset);
+    write(STDOUT_FILENO, cursor_esc_code, strlen(cursor_esc_code));
+}
+
 char *line_edit(char *prompt)
 {
     int prompt_len = strlen(prompt);
@@ -36,16 +50,7 @@ char *line_edit(char *prompt)
     if (term_enable_raw() == -1) return NULL;
 
     do {
-        // repaint: move to col 0, print prompt + visible slice of line buffer, clear to end of window (removes leftover chars if needed).
-        write(STDOUT_FILENO, "\x1b[0G", 4);
-        write(STDOUT_FILENO, prompt, prompt_len);
-        write(STDOUT_FILENO, line_buffer + line_display_offset, curr_line_len < line_display_len ? curr_line_len : line_display_len);
-        write(STDOUT_FILENO, "\x1b[0K", 4);
-
-        // place cursor after prompt at logical position.
-        char cursor_esc_code[10];
-        snprintf(cursor_esc_code, sizeof(cursor_esc_code), "\x1b[%iG", prompt_len + 1 + curr_cursor_pos - line_display_offset);
-        write(STDOUT_FILENO, cursor_esc_code, strlen(cursor_esc_code));
+        redraw_line(line_buffer, prompt, prompt_len, curr_line_len, line_display_len, curr_cursor_pos, line_display_offset);
 
         // read a single byte in raw mode.
         char c;
