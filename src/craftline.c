@@ -1,4 +1,5 @@
 #include "termctrl.h"
+#include "line.h"
 #include <string.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -6,17 +7,17 @@
 #include <unistd.h>
 #include <errno.h>
 
-static void redraw_line(char *line_buffer, char *prompt, int prompt_len, int curr_line_len, int line_display_len, int curr_cursor_pos, int line_display_offset)
+static void redraw_line(char *prompt, int prompt_len, line_state line)
 {
     // repaint: move to col 0, print prompt + visible slice of line buffer, clear to end of window (removes leftover chars if needed).
     write(STDOUT_FILENO, "\x1b[0G", 4);
     write(STDOUT_FILENO, prompt, prompt_len);
-    write(STDOUT_FILENO, line_buffer + line_display_offset, curr_line_len < line_display_len ? curr_line_len : line_display_len);
+    write(STDOUT_FILENO, line.line_buffer + line.line_display_offset, line.curr_line_len < line.line_display_len ? line.curr_line_len : line.line_display_len);
     write(STDOUT_FILENO, "\x1b[0K", 4);
 
     // place cursor after prompt at logical position.
     char cursor_esc_code[10];
-    snprintf(cursor_esc_code, sizeof(cursor_esc_code), "\x1b[%iG", prompt_len + 1 + curr_cursor_pos - line_display_offset);
+    snprintf(cursor_esc_code, sizeof(cursor_esc_code), "\x1b[%iG", prompt_len + 1 + line.curr_cursor_pos - line.line_display_offset);
     write(STDOUT_FILENO, cursor_esc_code, strlen(cursor_esc_code));
 }
 
@@ -35,17 +36,11 @@ char *craftline(char *prompt)
 {
     int prompt_len = strlen(prompt);
 
-    // Initialize line buffer
-    char *line_buffer;
-    int line_buffer_size = 100;
-    line_buffer = malloc(line_buffer_size);
-    line_buffer[0] = '\0';
-
-    // logical line state.
-    int curr_line_len = 0;        // current line length
-    int curr_cursor_pos = 0;      // current cursor position within line buffer.
-    int line_display_offset = 0;  // horizontal scroll offset; line is printed on screen starting here.
-    int line_display_len = 0;     // visible chars available on screen after prompt is printed; depends on window size.
+    // Initialize line state
+    line_state line = {0};
+    line.line_buffer_size = 100;
+    line.line_buffer = malloc(line.line_buffer_size);
+    line.line_buffer[0] = '\0';
 
     // determine terminal window width to compute visible line region.
     struct winsize ws;
@@ -57,12 +52,12 @@ char *craftline(char *prompt)
         term_win_width = ws.ws_col - 1;
     }
 
-    line_display_len = term_win_width - prompt_len;
+    line.line_display_len = term_win_width - prompt_len;
 
     if (term_enable_raw() == -1) return NULL;
 
     do {
-        redraw_line(line_buffer, prompt, prompt_len, curr_line_len, line_display_len, curr_cursor_pos, line_display_offset);
+        redraw_line(prompt, prompt_len, line);
 
         // read a single byte in raw mode.
         char c;
@@ -78,14 +73,14 @@ char *craftline(char *prompt)
 
             case 8:  // ctrl+h
             case 127: // Backspace
-                if (curr_cursor_pos > 0) {
+                if (line.curr_cursor_pos > 0) {
                     // delete chararacter before cursor.
-                    memmove(line_buffer + (curr_cursor_pos - 1), line_buffer + curr_cursor_pos, curr_line_len - curr_cursor_pos);
-                    curr_cursor_pos--;
-                    curr_line_len--;
-                    line_buffer[curr_line_len] = '\0';
-                    if (line_display_offset > 0)
-                        line_display_offset--;
+                    memmove(line.line_buffer + (line.curr_cursor_pos - 1), line.line_buffer + line.curr_cursor_pos, line.curr_line_len - line.curr_cursor_pos);
+                    line.curr_cursor_pos--;
+                    line.curr_line_len--;
+                    line.line_buffer[line.curr_line_len] = '\0';
+                    if (line.line_display_offset > 0)
+                        line.line_display_offset--;
                 }
                 break;
 
@@ -95,10 +90,10 @@ char *craftline(char *prompt)
                 exit(EXIT_SUCCESS);
 
             case 4: // ctrl+d:
-                if (curr_line_len == 0) {
+                if (line.curr_line_len == 0) {
                     term_disable_raw();
                     write(STDOUT_FILENO, "\n", 1);
-                    free(line_buffer);
+                    free(line.line_buffer);
                     return NULL;
                 }
                 break;
@@ -128,11 +123,11 @@ char *craftline(char *prompt)
                 break;
 
             case 21: // ctrl+u: clear entire input.
-                free(line_buffer);
-                line_buffer = calloc(line_buffer_size, sizeof(char));
-                curr_cursor_pos = 0;
-                line_display_offset = 0;
-                curr_line_len = 0;
+                free(line.line_buffer);
+                line.line_buffer = calloc(line.line_buffer_size, sizeof(char));
+                line.curr_cursor_pos = 0;
+                line.line_display_offset = 0;
+                line.curr_line_len = 0;
                 break;
 
             case 27: // esc: parse simple CSI arrow keys.
@@ -140,16 +135,16 @@ char *craftline(char *prompt)
                 if (read_escseq(escseq) == 0 && escseq[0] == '[') {
                     switch(escseq[1]) {
                         case 'C': // right arrow: move cursor to right
-                            if (curr_cursor_pos < curr_line_len) 
-                                curr_cursor_pos++;
-                            if (curr_cursor_pos - line_display_offset > line_display_len) 
-                                line_display_offset++;
+                            if (line.curr_cursor_pos < line.curr_line_len) 
+                                line.curr_cursor_pos++;
+                            if (line.curr_cursor_pos - line.line_display_offset > line.line_display_len) 
+                                line.line_display_offset++;
                             break;
                         case 'D': // left arrow: move cursor to left
-                            if (curr_cursor_pos > 0) 
-                                curr_cursor_pos--;
-                            if (curr_cursor_pos < line_display_offset)
-                                line_display_offset--;
+                            if (line.curr_cursor_pos > 0) 
+                                line.curr_cursor_pos--;
+                            if (line.curr_cursor_pos < line.line_display_offset)
+                                line.line_display_offset--;
                             break;
                         case 'A': // up arrow: move to previous history entry.
                             break;
@@ -160,21 +155,21 @@ char *craftline(char *prompt)
                 break;
 
             default: // insert character at cursor.
-                memmove(line_buffer + curr_cursor_pos + 1, line_buffer + curr_cursor_pos, curr_line_len - curr_cursor_pos);
-                line_buffer[curr_cursor_pos] = c;
-                curr_cursor_pos++;
-                curr_line_len++;
-                line_buffer[curr_line_len] = '\0';
-                if (curr_cursor_pos - line_display_offset > line_display_len)
-                    line_display_offset++;
+                memmove(line.line_buffer + line.curr_cursor_pos + 1, line.line_buffer + line.curr_cursor_pos, line.curr_line_len - line.curr_cursor_pos);
+                line.line_buffer[line.curr_cursor_pos] = c;
+                line.curr_cursor_pos++;
+                line.curr_line_len++;
+                line.line_buffer[line.curr_line_len] = '\0';
+                if (line.curr_cursor_pos - line.line_display_offset > line.line_display_len)
+                    line.line_display_offset++;
                 break;
         }
 
         // grow buffer if needed.
-        if (curr_line_len + 1 >= line_buffer_size) {
-            line_buffer_size += line_buffer_size;
-            line_buffer = realloc(line_buffer, line_buffer_size);
-            if (!line_buffer) return NULL;
+        if (line.curr_line_len + 1 >= line.line_buffer_size) {
+            line.line_buffer_size += line.line_buffer_size;
+            line.line_buffer = realloc(line.line_buffer, line.line_buffer_size);
+            if (!line.line_buffer) return NULL;
         }
     } while (1);
 
@@ -182,5 +177,5 @@ char *craftline(char *prompt)
         term_disable_raw();
         write(STDOUT_FILENO, "\x0a", 1);
 
-        return line_buffer;
+        return line.line_buffer;
 }
